@@ -49,7 +49,7 @@ The console prints the listening URL (e.g. `http://localhost:5xxx`).
 
 - **Month view** — a list of every day in the current month; each day shows the projects
   and tasks active on that date (multi-day items appear on every day in their range).
-  - The **current day** shows each element as a full chip with its name and date range.
+  - The **current day** shows each element as a full chip with its name.
   - **Past and future days** show each element as a compact shape filled with its
     `color`: a **square `P`** for projects and a **circle `T`** for tasks (hover for the
     name and dates).

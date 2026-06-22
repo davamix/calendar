@@ -190,7 +190,6 @@ button { font: inherit; cursor: pointer; }
 }
 .chip:hover { transform: translateY(-1px); }
 .chip:active { transform: translateY(0); }
-.chip .span-note { font-weight: 500; opacity: .8; font-size: .76rem; }
 .no-items { color: var(--muted); font-size: .85rem; align-self: center; }
 
 /* Compact shapes for past/future days */
