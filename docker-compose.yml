@@ -1,0 +1,11 @@
+services:
+  calendar:
+    build: .
+    image: calendar-poc:latest
+    container_name: calendar-poc
+    ports:
+      # host:container — open http://localhost:8080 on the host.
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    restart: unless-stopped

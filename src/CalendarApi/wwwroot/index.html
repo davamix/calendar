@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar POC</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">📅 Calendar <span>POC</span></div>
+    <form id="searchForm" class="search" role="search">
+      <input id="searchInput" type="search" placeholder="Search by name or ID…" autocomplete="off" />
+      <button type="submit">Search</button>
+    </form>
+  </header>
+
+  <section class="toolbar">
+    <div class="month-nav">
+      <button id="prevMonth" class="icon-btn" title="Previous month" aria-label="Previous month">‹</button>
+      <h2 id="monthLabel">…</h2>
+      <button id="nextMonth" class="icon-btn" title="Next month" aria-label="Next month">›</button>
+      <button id="todayBtn" class="ghost">Today</button>
+    </div>
+    <div class="actions">
+      <span class="legend"><span class="dot project"></span>Project</span>
+      <span class="legend"><span class="dot task"></span>Task</span>
+      <button id="newProject" class="btn project">+ Project</button>
+      <button id="newTask" class="btn task">+ Task</button>
+    </div>
+  </section>
+
+  <main id="dayList" class="day-list" aria-live="polite"></main>
+
+  <!-- Create / edit modal -->
+  <div id="modalBackdrop" class="backdrop hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 id="modalTitle">New element</h3>
+        <button id="modalClose" class="icon-btn" aria-label="Close">×</button>
+      </div>
+      <form id="elementForm">
+        <input type="hidden" id="fieldId" />
+        <input type="hidden" id="fieldKind" />
+        <label>Name
+          <input type="text" id="fieldName" required maxlength="120" />
+        </label>
+        <label>Description
+          <textarea id="fieldDescription" rows="3" maxlength="1000"></textarea>
+        </label>
+        <div class="row">
+          <label>Start date
+            <input type="date" id="fieldStart" required />
+          </label>
+          <label>End date
+            <input type="date" id="fieldEnd" required />
+          </label>
+        </div>
+        <p id="formError" class="form-error hidden"></p>
+        <div class="modal-foot">
+          <button type="button" id="deleteBtn" class="btn danger hidden">Delete</button>
+          <span class="spacer"></span>
+          <button type="button" id="cancelBtn" class="ghost">Cancel</button>
+          <button type="submit" id="saveBtn" class="btn primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Search results overlay -->
+  <div id="searchBackdrop" class="backdrop hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="searchTitle">
+      <div class="modal-head">
+        <h3 id="searchTitle">Search results</h3>
+        <button id="searchClose" class="icon-btn" aria-label="Close">×</button>
+      </div>
+      <div id="searchResults" class="search-results"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
