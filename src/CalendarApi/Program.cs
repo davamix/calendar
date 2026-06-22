@@ -43,6 +43,7 @@ app.MapElementApi<Project>("/api/projects", "Projects",
         Description = req.Description,
         StartDate = req.StartDate,
         EndDate = req.EndDate,
+        Color = req.Color?.Trim(),
     });
 
 app.MapElementApi<WorkTask>("/api/tasks", "Tasks",
@@ -52,6 +53,7 @@ app.MapElementApi<WorkTask>("/api/tasks", "Tasks",
         Description = req.Description,
         StartDate = req.StartDate,
         EndDate = req.EndDate,
+        Color = req.Color?.Trim(),
     });
 
 // Lightweight health probe for the container.

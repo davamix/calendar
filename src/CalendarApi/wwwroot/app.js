@@ -116,15 +116,12 @@ function render() {
     if (dayItems.length === 0) {
       items.innerHTML = `<span class="no-items">No projects or tasks</span>`;
     } else {
+      const isToday = iso === today;
       for (const item of dayItems) {
-        const multiDay = item.startDate !== item.endDate;
-        const chip = document.createElement("button");
-        chip.className = `chip ${item.kind}`;
-        chip.innerHTML =
-          `<span class="cdot"></span>${escapeHtml(item.name)}` +
-          (multiDay ? `<span class="span-note">${item.startDate}→${item.endDate}</span>` : "");
-        chip.addEventListener("click", () => openEdit(item));
-        items.appendChild(chip);
+        // Today shows the full chip; every other day shows a compact colored shape.
+        const el = isToday ? buildChip(item) : buildShape(item);
+        el.addEventListener("click", () => openEdit(item));
+        items.appendChild(el);
       }
     }
     row.appendChild(items);
@@ -141,6 +138,47 @@ async function refresh() {
   }
 }
 
+// Full chip used for items on the current day: name + (optional) date range.
+function buildChip(item) {
+  const multiDay = item.startDate !== item.endDate;
+  const chip = document.createElement("button");
+  chip.className = `chip ${item.kind}`;
+  chip.innerHTML =
+    `<span class="cdot"></span>${escapeHtml(item.name)}` +
+    (multiDay ? `<span class="span-note">${item.startDate}→${item.endDate}</span>` : "");
+  return chip;
+}
+
+// Compact shape used for past/future days: square (P) for projects, circle (T)
+// for tasks, filled with the element's configured colour.
+function buildShape(item) {
+  const color = elementColor(item);
+  const shape = document.createElement("button");
+  shape.className = `shape ${item.kind}`;
+  shape.style.backgroundColor = color;
+  shape.style.color = contrastText(color);
+  shape.textContent = item.kind === "project" ? "P" : "T";
+  shape.title = `${item.name} · ${prettyRange(item.startDate, item.endDate)}`;
+  return shape;
+}
+
+// Resolve a usable colour, falling back to the per-kind default.
+function elementColor(item) {
+  return item.color && HEX_RE.test(item.color) ? item.color : DEFAULT_COLOR[item.kind];
+}
+
+// Pick black or white text for legibility on the given hex background.
+function contrastText(hex) {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  // Relative luminance (sRGB) — threshold ~0.55 reads well for these chips.
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.55 ? "#111827" : "#ffffff";
+}
+
 // --- Modal (create / edit) ----------------------------------------------
 const modal = {
   backdrop: document.getElementById("modalBackdrop"),
@@ -151,9 +189,14 @@ const modal = {
   description: document.getElementById("fieldDescription"),
   start: document.getElementById("fieldStart"),
   end: document.getElementById("fieldEnd"),
+  color: document.getElementById("fieldColor"),
   error: document.getElementById("formError"),
   deleteBtn: document.getElementById("deleteBtn"),
 };
+
+// Default shape colour per kind when the element has none set.
+const DEFAULT_COLOR = { project: "#4f46e5", task: "#0d9488" };
+const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 function openCreate(kind) {
   const firstOfView = isoDate(state.view);
@@ -164,6 +207,7 @@ function openCreate(kind) {
   modal.description.value = "";
   modal.start.value = firstOfView;
   modal.end.value = firstOfView;
+  modal.color.value = DEFAULT_COLOR[kind];
   modal.error.classList.add("hidden");
   modal.deleteBtn.classList.add("hidden");
   showModal();
@@ -177,6 +221,7 @@ function openEdit(item) {
   modal.description.value = item.description ?? "";
   modal.start.value = item.startDate;
   modal.end.value = item.endDate;
+  modal.color.value = item.color ?? DEFAULT_COLOR[item.kind];
   modal.error.classList.add("hidden");
   modal.deleteBtn.classList.remove("hidden");
   showModal();
@@ -192,15 +237,18 @@ async function saveElement(evt) {
   evt.preventDefault();
   const kind = modal.kind.value;
   const id = modal.id.value;
+  const color = modal.color.value.trim();
   const body = {
     name: modal.name.value.trim(),
     description: modal.description.value.trim() || null,
     startDate: modal.start.value,
     endDate: modal.end.value,
+    color: color || null,
   };
 
   if (!body.name) return showFormError("Name is required.");
   if (body.endDate < body.startDate) return showFormError("End date must be on or after the start date.");
+  if (color && !HEX_RE.test(color)) return showFormError("Color must be a hex code such as #4f46e5.");
 
   try {
     if (id) {

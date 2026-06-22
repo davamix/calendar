@@ -57,6 +57,10 @@
             <input type="date" id="fieldEnd" required />
           </label>
         </div>
+        <label>Color (hex)
+          <input type="text" id="fieldColor" placeholder="#4f46e5" maxlength="7"
+                 pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" />
+        </label>
         <p id="formError" class="form-error hidden"></p>
         <div class="modal-foot">
           <button type="button" id="deleteBtn" class="btn danger hidden">Delete</button>

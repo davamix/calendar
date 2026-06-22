@@ -18,7 +18,7 @@ Two element kinds share the same shape and are referred to together as a *task e
 | `Task`    | `/api/tasks`     | Day-to-day tasks                 |
 
 Each element has: `id` (GUID), `name`, `description`, `startDate`, `endDate` (dates are
-inclusive, `YYYY-MM-DD`).
+inclusive, `YYYY-MM-DD`), and an optional `color` (hex, e.g. `#4f46e5`).
 
 ---
 
@@ -49,11 +49,14 @@ The console prints the listening URL (e.g. `http://localhost:5xxx`).
 
 - **Month view** — a list of every day in the current month; each day shows the projects
   and tasks active on that date (multi-day items appear on every day in their range).
+  - The **current day** shows each element as a full chip with its name and date range.
+  - **Past and future days** show each element as a compact shape filled with its
+    `color`: a **square `P`** for projects and a **circle `T`** for tasks (hover for the
+    name and dates).
 - **Navigate** months with `‹` / `›` / **Today**.
-- **Create** via **+ Project** / **+ Task**; **edit or delete** by clicking any item chip.
+- **Create** via **+ Project** / **+ Task**; set the element's `color` as a hex code in the
+  form. **Edit or delete** by clicking any item.
 - **Search** by name (substring) or by exact ID using the search box in the header.
-
-Projects are shown in indigo, tasks in teal.
 
 ---
 
@@ -79,12 +82,14 @@ substitute `{kind}` with `projects` or `tasks`.
   "name": "Sprint planning",
   "description": "Plan the upcoming sprint",
   "startDate": "2026-06-22",
-  "endDate": "2026-06-22"
+  "endDate": "2026-06-22",
+  "color": "#16a34a"
 }
 ```
 
-Validation returns **400** with an RFC 7807 problem document when `name` is empty or
-`endDate` is before `startDate`.
+`color` is optional. Validation returns **400** with an RFC 7807 problem document when
+`name` is empty, `endDate` is before `startDate`, or `color` is not a valid hex code
+(`#rgb` or `#rrggbb`).
 
 ### Examples
 

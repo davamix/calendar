@@ -54,6 +54,7 @@ public sealed class InMemoryStore<T> where T : CalendarItem
         item.Description = request.Description;
         item.StartDate = request.StartDate;
         item.EndDate = request.EndDate;
+        item.Color = request.Color?.Trim();
         return item;
     }
 

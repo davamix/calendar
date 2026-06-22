@@ -21,6 +21,9 @@ public abstract class CalendarItem
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
 
+    /// <summary>Hex colour (e.g. <c>#4f46e5</c>) used to fill the element's shape in the UI.</summary>
+    public string? Color { get; set; }
+
     /// <summary>The concrete kind, surfaced in API responses so clients can tell them apart.</summary>
     public abstract ElementKind Kind { get; }
 

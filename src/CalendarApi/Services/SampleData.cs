@@ -23,6 +23,7 @@ public static class SampleData
             Description = "Revamp the marketing site with the new brand guidelines.",
             StartDate = firstOfMonth,
             EndDate = Day(18),
+            Color = "#4f46e5",
         });
         projects.Add(new Project
         {
@@ -30,6 +31,7 @@ public static class SampleData
             Description = "Ship the second major release of the companion mobile app.",
             StartDate = Day(8),
             EndDate = lastOfMonth,
+            Color = "#0ea5e9",
         });
         projects.Add(new Project
         {
@@ -37,6 +39,7 @@ public static class SampleData
             Description = "Roadmap and OKR planning for the next quarter.",
             StartDate = Day(22),
             EndDate = Day(26),
+            Color = "#7c3aed",
         });
 
         tasks.Add(new WorkTask
@@ -45,6 +48,7 @@ public static class SampleData
             Description = "Walk through the homepage mockups with the design team.",
             StartDate = Day(3),
             EndDate = Day(3),
+            Color = "#0d9488",
         });
         tasks.Add(new WorkTask
         {
@@ -52,6 +56,7 @@ public static class SampleData
             Description = "Plan the upcoming two-week sprint.",
             StartDate = Day(10),
             EndDate = Day(10),
+            Color = "#16a34a",
         });
         tasks.Add(new WorkTask
         {
@@ -59,6 +64,7 @@ public static class SampleData
             Description = "Investigate the third-party payment API integration.",
             StartDate = Day(12),
             EndDate = Day(14),
+            Color = "#d97706",
         });
         tasks.Add(new WorkTask
         {
@@ -66,6 +72,7 @@ public static class SampleData
             Description = "Demo the new features to stakeholders.",
             StartDate = Day(20),
             EndDate = Day(20),
+            Color = "#db2777",
         });
         tasks.Add(new WorkTask
         {
@@ -73,6 +80,7 @@ public static class SampleData
             Description = "Team retrospective for the closing sprint.",
             StartDate = Day(27),
             EndDate = Day(27),
+            Color = "#475569",
         });
     }
 }
