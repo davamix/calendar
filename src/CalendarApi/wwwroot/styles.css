@@ -149,20 +149,16 @@ button { font: inherit; cursor: pointer; }
 .chip {
   display: inline-flex; align-items: center; gap: 7px;
   border-radius: 999px;
-  padding: 5px 12px 5px 10px;
+  padding: 5px 12px;
   font-size: .85rem; font-weight: 600;
-  border: 1px solid transparent;
+  border: none;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08);
   cursor: pointer;
   transition: transform .05s ease;
 }
 .chip:hover { transform: translateY(-1px); }
 .chip:active { transform: translateY(0); }
-.chip.project { background: var(--project-soft); color: var(--project); border-color: #dfe2fb; }
-.chip.task { background: var(--task-soft); color: var(--task); border-color: #cdeae6; }
-.chip .cdot { width: 8px; height: 8px; border-radius: 50%; }
-.chip.project .cdot { background: var(--project); }
-.chip.task .cdot { background: var(--task); }
-.chip .span-note { font-weight: 500; opacity: .7; font-size: .76rem; }
+.chip .span-note { font-weight: 500; opacity: .8; font-size: .76rem; }
 .no-items { color: var(--muted); font-size: .85rem; align-self: center; }
 
 /* Compact shapes for past/future days */

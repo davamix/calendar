@@ -138,13 +138,17 @@ async function refresh() {
   }
 }
 
-// Full chip used for items on the current day: name + (optional) date range.
+// Full chip used for items on the current day: name + (optional) date range,
+// filled with the element's configured colour.
 function buildChip(item) {
+  const color = elementColor(item);
   const multiDay = item.startDate !== item.endDate;
   const chip = document.createElement("button");
   chip.className = `chip ${item.kind}`;
+  chip.style.backgroundColor = color;
+  chip.style.color = contrastText(color);
   chip.innerHTML =
-    `<span class="cdot"></span>${escapeHtml(item.name)}` +
+    escapeHtml(item.name) +
     (multiDay ? `<span class="span-note">${item.startDate}→${item.endDate}</span>` : "");
   return chip;
 }
