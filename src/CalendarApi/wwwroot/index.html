@@ -31,7 +31,16 @@
     </div>
   </section>
 
-  <main id="dayList" class="day-list" aria-live="polite"></main>
+  <div class="content">
+    <main id="dayList" class="day-list" aria-live="polite"></main>
+    <aside class="legend-panel" aria-label="Projects and tasks this month">
+      <div class="legend-head">
+        <h3>This month</h3>
+        <p class="legend-key">Square = project &middot; Circle = task</p>
+      </div>
+      <div id="legendList" class="legend-list"></div>
+    </aside>
+  </div>
 
   <!-- Create / edit modal -->
   <div id="modalBackdrop" class="backdrop hidden">

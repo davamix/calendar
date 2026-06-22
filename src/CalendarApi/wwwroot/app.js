@@ -127,6 +127,14 @@ function render() {
     row.appendChild(items);
     list.appendChild(row);
   }
+
+  // Legend aside: every element that overlaps the visible month.
+  const firstIso = isoDate(new Date(view.getFullYear(), view.getMonth(), 1));
+  const lastIso = isoDate(new Date(view.getFullYear(), view.getMonth(), daysInMonth));
+  const monthItems = state.items
+    .filter((i) => i.startDate <= lastIso && i.endDate >= firstIso)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.name.localeCompare(b.name));
+  renderLegend(monthItems);
 }
 
 async function refresh() {
@@ -164,6 +172,37 @@ function buildShape(item) {
   shape.textContent = item.kind === "project" ? "P" : "T";
   shape.title = `${item.name} · ${prettyRange(item.startDate, item.endDate)}`;
   return shape;
+}
+
+// Legend aside: every project/task in the visible month shown as its shape +
+// full chip, laid out as a table. Clicking an entry opens it for editing.
+function renderLegend(items) {
+  const box = document.getElementById("legendList");
+  box.innerHTML = "";
+  if (items.length === 0) {
+    box.innerHTML = `<p class="legend-empty">No projects or tasks this month.</p>`;
+    return;
+  }
+  const table = document.createElement("table");
+  table.className = "legend-table";
+  for (const item of items) {
+    const tr = document.createElement("tr");
+
+    const shapeCell = document.createElement("td");
+    shapeCell.className = "legend-shape-cell";
+    const shape = buildShape(item);
+    shape.addEventListener("click", () => openEdit(item));
+    shapeCell.appendChild(shape);
+
+    const chipCell = document.createElement("td");
+    const chip = buildChip(item);
+    chip.addEventListener("click", () => openEdit(item));
+    chipCell.appendChild(chip);
+
+    tr.append(shapeCell, chipCell);
+    table.appendChild(tr);
+  }
+  box.appendChild(table);
 }
 
 // Resolve a usable colour, falling back to the per-kind default.

@@ -53,6 +53,8 @@ The console prints the listening URL (e.g. `http://localhost:5xxx`).
   - **Past and future days** show each element as a compact shape filled with its
     `color`: a **square `P`** for projects and a **circle `T`** for tasks (hover for the
     name and dates).
+- **Legend aside** — a side panel lists every project and task active in the visible
+  month, each shown as its **shape + full chip**; click an entry to edit it.
 - **Navigate** months with `‹` / `›` / **Today**.
 - **Create** via **+ Project** / **+ Task**; set the element's `color` as a hex code in the
   form. **Edit or delete** by clicking any item.

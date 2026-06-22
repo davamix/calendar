@@ -68,9 +68,19 @@ button { font: inherit; cursor: pointer; }
   gap: 16px;
   flex-wrap: wrap;
   padding: 18px 24px 8px;
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* Two-column content: day list + legend aside */
+.content {
+  max-width: 1280px;
+  margin: 10px auto 60px;
+  padding: 0 24px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
 }
 .month-nav { display: flex; align-items: center; gap: 10px; }
 .month-nav h2 { margin: 0; font-size: 1.4rem; min-width: 230px; text-align: center; }
@@ -114,13 +124,35 @@ button { font: inherit; cursor: pointer; }
 
 /* Day list */
 .day-list {
-  max-width: 1100px;
-  margin: 10px auto 60px;
-  padding: 0 24px;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
+/* Legend aside */
+.legend-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  position: sticky;
+  top: 76px;
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+}
+.legend-head h3 { margin: 0 0 2px; font-size: 1rem; }
+.legend-key { margin: 0 0 10px; font-size: .72rem; color: var(--muted); }
+.legend-table { width: 100%; border-collapse: collapse; }
+.legend-table td { padding: 6px 0; vertical-align: middle; }
+.legend-table tr + tr td { border-top: 1px solid var(--border); }
+.legend-shape-cell { width: 36px; text-align: center; padding-right: 8px !important; }
+.legend-table .chip { white-space: normal; text-align: left; }
+.legend-empty { color: var(--muted); font-size: .85rem; text-align: center; padding: 12px 0; }
 .day-row {
   display: grid;
   grid-template-columns: 92px 1fr;
@@ -237,6 +269,11 @@ button { font: inherit; cursor: pointer; }
 .toast.error { background: var(--danger); }
 
 .hidden { display: none !important; }
+
+@media (max-width: 900px) {
+  .content { flex-direction: column; }
+  .legend-panel { width: 100%; position: static; max-height: none; }
+}
 
 @media (max-width: 620px) {
   .app-header { flex-direction: column; align-items: stretch; }
