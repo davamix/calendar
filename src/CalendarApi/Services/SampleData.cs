@@ -23,7 +23,7 @@ public static class SampleData
             Description = "Revamp the marketing site with the new brand guidelines.",
             StartDate = firstOfMonth,
             EndDate = Day(18),
-            Color = "#4f46e5",
+            Color = "#002366", // Deep Royal Blue
         });
         projects.Add(new Project
         {
@@ -31,7 +31,7 @@ public static class SampleData
             Description = "Ship the second major release of the companion mobile app.",
             StartDate = Day(8),
             EndDate = lastOfMonth,
-            Color = "#0ea5e9",
+            Color = "#4b0082", // Muted Indigo
         });
         projects.Add(new Project
         {
@@ -39,7 +39,7 @@ public static class SampleData
             Description = "Roadmap and OKR planning for the next quarter.",
             StartDate = Day(22),
             EndDate = Day(26),
-            Color = "#7c3aed",
+            Color = "#673147", // Deep Plum
         });
 
         tasks.Add(new WorkTask
@@ -48,7 +48,7 @@ public static class SampleData
             Description = "Walk through the homepage mockups with the design team.",
             StartDate = Day(3),
             EndDate = Day(3),
-            Color = "#0d9488",
+            Color = "#004d40", // Forest Teal
         });
         tasks.Add(new WorkTask
         {
@@ -56,7 +56,7 @@ public static class SampleData
             Description = "Plan the upcoming two-week sprint.",
             StartDate = Day(10),
             EndDate = Day(10),
-            Color = "#16a34a",
+            Color = "#8a9a5b", // Soft Sage Green
         });
         tasks.Add(new WorkTask
         {
@@ -64,7 +64,7 @@ public static class SampleData
             Description = "Investigate the third-party payment API integration.",
             StartDate = Day(12),
             EndDate = Day(14),
-            Color = "#d97706",
+            Color = "#c04000", // Warm Terracotta
         });
         tasks.Add(new WorkTask
         {
@@ -72,7 +72,7 @@ public static class SampleData
             Description = "Demo the new features to stakeholders.",
             StartDate = Day(20),
             EndDate = Day(20),
-            Color = "#db2777",
+            Color = "#708090", // Cool Slate Gray
         });
         tasks.Add(new WorkTask
         {
@@ -80,7 +80,7 @@ public static class SampleData
             Description = "Team retrospective for the closing sprint.",
             StartDate = Day(27),
             EndDate = Day(27),
-            Color = "#475569",
+            Color = "#36454f", // Charcoal
         });
     }
 }

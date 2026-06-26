@@ -97,34 +97,40 @@ function render() {
 
     const dayItems = state.items.filter((i) => iso >= i.startDate && iso <= i.endDate);
 
+    const isToday = iso === today;
+
     const row = document.createElement("div");
-    row.className = "day-row";
-    if (weekday === 0 || weekday === 6) row.classList.add("weekend");
-    if (iso === today) row.classList.add("today");
-    if (dayItems.length === 0) row.classList.add("empty");
+    row.className = "day-row" + (isToday ? " today" : "") + (dayItems.length === 0 ? " empty" : "");
 
     const cell = document.createElement("div");
     cell.className = "day-cell";
-    cell.innerHTML =
-      `<div class="wd">${WEEKDAYS[weekday]}</div>` +
-      `<div class="num">${day}</div>` +
-      (iso === today ? `<div class="badge-today">Today</div>` : "");
+    cell.innerHTML = `<span class="wd">${WEEKDAYS[weekday]}</span><span class="num">${day}</span>`;
     row.appendChild(cell);
 
-    const items = document.createElement("div");
-    items.className = "items";
     if (dayItems.length === 0) {
-      items.innerHTML = `<span class="no-items">No projects or tasks</span>`;
+      const empty = document.createElement("div");
+      empty.className = "day-empty";
+      empty.textContent = "No events scheduled";
+      row.appendChild(empty);
     } else {
-      const isToday = iso === today;
+      const items = document.createElement("div");
+      items.className = "day-items";
       for (const item of dayItems) {
-        // Today shows the full chip; every other day shows a compact colored shape.
-        const el = isToday ? buildChip(item) : buildShape(item);
+        // Today shows full colored bars; every other day shows a compact shape.
+        const el = isToday ? buildDayBar(item) : buildShape(item);
         el.addEventListener("click", () => openEdit(item));
         items.appendChild(el);
       }
+      row.appendChild(items);
     }
-    row.appendChild(items);
+
+    if (isToday) {
+      const badge = document.createElement("span");
+      badge.className = "today-badge";
+      badge.textContent = "Today";
+      row.appendChild(badge);
+    }
+
     list.appendChild(row);
   }
 
@@ -146,23 +152,26 @@ async function refresh() {
   }
 }
 
-// Full chip used for items on the current day and in the legend: the element's
-// name, filled with its configured colour.
-function buildChip(item) {
+// Full-width colored bar for items on the current day: P/T badge + name only.
+function buildDayBar(item) {
   const color = elementColor(item);
-  const chip = document.createElement("button");
-  chip.className = `chip ${item.kind}`;
-  chip.style.backgroundColor = color;
-  chip.style.color = contrastText(color);
-  chip.textContent = item.name;
-  return chip;
+  const bar = document.createElement("button");
+  bar.className = `daybar ${item.kind}`;
+  bar.type = "button";
+  bar.style.backgroundColor = color;
+  bar.style.color = contrastText(color);
+  const badge = document.createElement("span");
+  badge.className = "daybar-badge";
+  badge.textContent = item.kind === "project" ? "P" : "T";
+  bar.append(badge, document.createTextNode(item.name));
+  return bar;
 }
 
-// Compact shape used for past/future days: square (P) for projects, circle (T)
-// for tasks, filled with the element's configured colour.
-function buildShape(item) {
+// Compact shape: square (P) for projects, circle (T) for tasks, filled with the
+// element's colour. Returns a <button> by default; pass "span" for static use.
+function buildShape(item, tag = "button") {
   const color = elementColor(item);
-  const shape = document.createElement("button");
+  const shape = document.createElement(tag);
   shape.className = `shape ${item.kind}`;
   shape.style.backgroundColor = color;
   shape.style.color = contrastText(color);
@@ -171,8 +180,8 @@ function buildShape(item) {
   return shape;
 }
 
-// Legend aside: every project/task in the visible month shown as its shape +
-// full chip, laid out as a table. Clicking an entry opens it for editing.
+// Legend aside: projects and tasks in the visible month, grouped by kind. Each
+// row is the element's shape + name and opens it for editing.
 function renderLegend(items) {
   const box = document.getElementById("legendList");
   box.innerHTML = "";
@@ -180,26 +189,43 @@ function renderLegend(items) {
     box.innerHTML = `<p class="legend-empty">No projects or tasks this month.</p>`;
     return;
   }
-  const table = document.createElement("table");
-  table.className = "legend-table";
-  for (const item of items) {
-    const tr = document.createElement("tr");
+  box.append(
+    legendGroup("Active Projects", items.filter((i) => i.kind === "project")),
+    legendGroup("Current Tasks", items.filter((i) => i.kind === "task")),
+  );
+}
 
-    const shapeCell = document.createElement("td");
-    shapeCell.className = "legend-shape-cell";
-    const shape = buildShape(item);
-    shape.addEventListener("click", () => openEdit(item));
-    shapeCell.appendChild(shape);
+function legendGroup(label, items) {
+  const group = document.createElement("div");
+  group.className = "legend-group";
 
-    const chipCell = document.createElement("td");
-    const chip = buildChip(item);
-    chip.addEventListener("click", () => openEdit(item));
-    chipCell.appendChild(chip);
+  const heading = document.createElement("p");
+  heading.className = "legend-group-label";
+  heading.textContent = label;
+  group.appendChild(heading);
 
-    tr.append(shapeCell, chipCell);
-    table.appendChild(tr);
+  const rows = document.createElement("div");
+  rows.className = "legend-rows";
+  if (items.length === 0) {
+    const none = document.createElement("p");
+    none.className = "legend-empty";
+    none.textContent = "None this month.";
+    rows.appendChild(none);
+  } else {
+    for (const item of items) {
+      const row = document.createElement("button");
+      row.className = "legend-row";
+      row.type = "button";
+      const name = document.createElement("span");
+      name.className = "legend-name";
+      name.textContent = item.name;
+      row.append(buildShape(item, "span"), name);
+      row.addEventListener("click", () => openEdit(item));
+      rows.appendChild(row);
+    }
   }
-  box.appendChild(table);
+  group.appendChild(rows);
+  return group;
 }
 
 // Resolve a usable colour, falling back to the per-kind default.
@@ -234,8 +260,8 @@ const modal = {
   deleteBtn: document.getElementById("deleteBtn"),
 };
 
-// Default shape colour per kind when the element has none set.
-const DEFAULT_COLOR = { project: "#4f46e5", task: "#0d9488" };
+// Default element colour per kind (from the curated palette) when none is set.
+const DEFAULT_COLOR = { project: "#002366", task: "#004d40" };
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 function openCreate(kind) {
@@ -361,8 +387,11 @@ function renderSearchResults(query, results) {
     box.innerHTML = `<p class="result-empty">No matches for “${escapeHtml(query)}”.</p>`;
   } else {
     for (const item of results) {
+      const color = elementColor(item);
       const row = document.createElement("div");
       row.className = "result";
+      row.style.backgroundColor = color;
+      row.style.color = contrastText(color);
       row.innerHTML =
         `<span class="kind-tag ${item.kind}">${item.kind}</span>` +
         `<span class="r-name">${escapeHtml(item.name)}</span>` +
@@ -411,6 +440,7 @@ function init() {
 
   document.getElementById("newProject").addEventListener("click", () => openCreate("project"));
   document.getElementById("newTask").addEventListener("click", () => openCreate("task"));
+  document.getElementById("fab").addEventListener("click", () => openCreate("project"));
 
   document.getElementById("elementForm").addEventListener("submit", saveElement);
   document.getElementById("deleteBtn").addEventListener("click", deleteElement);

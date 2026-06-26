@@ -6,6 +6,9 @@ It ships a web UI **and** a REST API for external integrations. Data lives **in 
 
 > Stack: **.NET 10** (ASP.NET Core minimal APIs) + vanilla HTML/CSS/JS frontend, packaged with **Docker**.
 
+The web UI follows a shared design system — see **[docs/STYLEGUIDE.md](docs/STYLEGUIDE.md)**
+(design tokens in [`wwwroot/tokens.css`](src/CalendarApi/wwwroot/tokens.css)).
+
 ---
 
 ## Concepts

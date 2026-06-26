@@ -1,0 +1,85 @@
+/*
+ * Design tokens — the single source of truth for the calendar UI.
+ * Derived from the Stitch "Calendar / Multi-Color Project Distinctions" prototype
+ * (Material-3 token naming, flat style, Inter, Slate neutrals + Royal Blue primary).
+ *
+ * Components must reference these variables — do NOT hardcode colours, sizes, or
+ * fonts elsewhere. The only per-instance exception is an element's own `color`.
+ * See docs/STYLEGUIDE.md.
+ */
+:root {
+  /* ---- Color: primary ---- */
+  --color-primary: #004ac6;
+  --color-primary-hover: #003ea8;          /* on-primary-fixed-variant */
+  --color-on-primary: #ffffff;
+
+  /* ---- Color: neutrals / surfaces ---- */
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-container: #f8fafc;       /* subtle raised */
+  --color-surface-container-low: #f1f5f9;   /* day-list canvas */
+  --color-surface-container-high: #f1f5f9;  /* hover fill */
+  --color-surface-container-highest: #e2e8f0;
+  --color-inverse-surface: #1e293b;         /* toast bg */
+  --color-inverse-on-surface: #f8fafc;
+
+  /* ---- Color: text ---- */
+  --color-on-surface: #0f172a;              /* primary text */
+  --color-on-surface-variant: #64748b;      /* secondary text / icons */
+  --color-secondary: #64748b;
+
+  /* ---- Color: lines ---- */
+  --color-outline: #94a3b8;                 /* stronger divider / shape outline */
+  --color-outline-variant: #e2e8f0;         /* default 1px borders */
+
+  /* ---- Color: status ---- */
+  --color-error: #b91c1c;
+  --color-error-container: #fee2e2;
+  --color-on-error: #ffffff;
+  --color-tertiary: #943700;                /* warm accent (reserved) */
+
+  /* ---- Color: overlays (translucent, sit over other colours) ---- */
+  --color-scrim: rgba(15, 23, 42, .45);        /* modal backdrop */
+  --color-overlay-on-fill: rgba(255, 255, 255, .2); /* badge over an element fill */
+
+  /* ---- Typography ---- */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* shorthand: <weight> <size>/<line> — pair with --tracking-* where noted */
+  --type-display-lg: 700 36px/44px var(--font-sans);
+  --type-display-lg-mobile: 700 28px/34px var(--font-sans);
+  --type-headline-md: 600 24px/32px var(--font-sans);
+  --type-title-sm: 600 18px/24px var(--font-sans);
+  --type-body-md: 400 16px/24px var(--font-sans);
+  --type-body-sm: 400 14px/20px var(--font-sans);
+  --type-label-caps: 600 12px/16px var(--font-sans);
+  --type-label-indicator: 700 11px/12px var(--font-sans);
+
+  --tracking-display: -0.02em;
+  --tracking-tight: -0.01em;
+  --tracking-caps: 0.05em;
+  --tracking-wide: 0.1em;
+
+  /* ---- Spacing (4px base unit) ---- */
+  --space-unit: 4px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;   /* gutter */
+  --space-6: 24px;
+  --space-8: 32px;   /* desktop margin */
+  --space-10: 40px;
+  --day-cell-min-height: 120px;
+
+  /* ---- Shape (flat) ---- */
+  --radius: 0px;           /* everything is square… */
+  --radius-circle: 50%;    /* …except the task shape (our deliberate divergence) */
+  --border-width: 1px;
+  --border: var(--border-width) solid var(--color-outline-variant);
+
+  /* ---- Layout ---- */
+  --topnav-height: 64px;
+  --legend-width: 340px;
+  --content-max-width: 960px;
+  --legend-breakpoint: 1280px;  /* legend aside hides below this; FAB shows */
+}

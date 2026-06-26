@@ -30,7 +30,13 @@ SampleData.Seed(
 
 app.UseCors();
 app.UseDefaultFiles();   // serve wwwroot/index.html at "/"
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // POC: always revalidate so edited HTML/CSS/JS are picked up on reload (no stale
+    // cache after a class rename). A production build would fingerprint asset URLs and
+    // cache them long-term instead.
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache",
+});
 
 // OpenAPI document at /openapi/v1.json for external integrators.
 app.MapOpenApi();
