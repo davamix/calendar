@@ -34,4 +34,18 @@ public partial record ElementRequest(
 
         return errors;
     }
+
+    /// <summary>
+    /// Copies the (trimmed) request fields onto an element. Shared by the create factories
+    /// and the store's update path so the two can never drift.
+    /// </summary>
+    public T ApplyTo<T>(T item) where T : CalendarItem
+    {
+        item.Name = Name!.Trim();
+        item.Description = Description;
+        item.StartDate = StartDate;
+        item.EndDate = EndDate;
+        item.Color = Color?.Trim();
+        return item;
+    }
 }

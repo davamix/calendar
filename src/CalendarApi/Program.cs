@@ -1,12 +1,25 @@
+using CalendarApi.Data;
 using CalendarApi.Endpoints;
 using CalendarApi.Models;
 using CalendarApi.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// In-memory stores (one per element kind), shared for the lifetime of the app.
-builder.Services.AddSingleton<InMemoryStore<Project>>();
-builder.Services.AddSingleton<InMemoryStore<WorkTask>>();
+// PostgreSQL persistence. The connection string is injected via configuration — in
+// containers the `ConnectionStrings__Calendar` env var (see security.md: secrets come from
+// the environment, never source / appsettings). Fail fast with a clear message if absent.
+var connectionString = builder.Configuration.GetConnectionString("Calendar")
+    ?? throw new InvalidOperationException(
+        "Missing connection string 'Calendar'. Set the ConnectionStrings__Calendar "
+        + "environment variable (e.g. Host=db;Database=calendar;Username=calendar;Password=…).");
+
+builder.Services.AddDbContext<CalendarDbContext>(options =>
+    options.UseNpgsql(connectionString));
+
+// Storage abstraction — one generic EF implementation serves both element kinds.
+builder.Services.AddScoped<IElementStore<Project>, EfElementStore<Project>>();
+builder.Services.AddScoped<IElementStore<WorkTask>, EfElementStore<WorkTask>>();
 
 // Serialize DateOnly/enums in a JSON-friendly way and emit OpenAPI metadata.
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -23,10 +36,16 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Seed illustrative sample data into the in-memory stores.
-SampleData.Seed(
-    app.Services.GetRequiredService<InMemoryStore<Project>>(),
-    app.Services.GetRequiredService<InMemoryStore<WorkTask>>());
+// Apply pending migrations on startup (fine for the current single-instance deployment),
+// then seed illustrative data into an empty DB — Development only, idempotent.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<CalendarDbContext>();
+    await db.Database.MigrateAsync();
+
+    if (app.Environment.IsDevelopment())
+        await SampleData.SeedAsync(db);
+}
 
 app.UseCors();
 app.UseDefaultFiles();   // serve wwwroot/index.html at "/"

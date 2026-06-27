@@ -1,11 +1,37 @@
 services:
+  db:
+    # pgvector image (Postgres + the pgvector extension) so vector search is available
+    # later without a migration; we don't use any vector column yet.
+    image: pgvector/pgvector:pg17
+    container_name: calendar-db
+    environment:
+      - POSTGRES_DB=calendar
+      - POSTGRES_USER=calendar
+      # Password is injected from the environment (.env) — never committed. See .env.example.
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - calendar-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U calendar -d calendar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   calendar:
     build: .
     image: calendar-poc:latest
     container_name: calendar-poc
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       # host:container — open http://localhost:8080 on the host.
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Calendar=Host=db;Port=5432;Database=calendar;Username=calendar;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     restart: unless-stopped
+
+volumes:
+  calendar-db-data:
