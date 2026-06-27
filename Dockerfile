@@ -16,6 +16,14 @@ RUN dotnet publish src/CalendarApi/CalendarApi.csproj \
 # --- Runtime stage -------------------------------------------------------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+
+# Npgsql probes for the Kerberos/GSSAPI library at connect time; without it the slim image
+# logs a misleading "Error: cannot open libgssapi_krb5.so.2" before falling back. Install it
+# so startup logs stay clean. (apt lists removed to keep the image small.)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 
 # Kestrel listens on 8080 inside the container (default for the aspnet image).
