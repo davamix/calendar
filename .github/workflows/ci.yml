@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege by default; individual jobs widen only what they need.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore CalendarPoc.slnx
+
+      - name: Build
+        run: dotnet build CalendarPoc.slnx -c Release --no-restore
+
+      # No test projects yet — add `dotnet test CalendarPoc.slnx --no-build` here once they exist.
+
+      - name: Audit NuGet packages for known vulnerabilities
+        run: |
+          report=$(dotnet list CalendarPoc.slnx package --vulnerable --include-transitive)
+          echo "$report"
+          if echo "$report" | grep -q "following vulnerable packages"; then
+            echo "::error::Vulnerable NuGet packages detected"
+            exit 1
+          fi
+
+  gitleaks:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so previously committed secrets are caught too
+
+      # Hard gate: fails the build if any secret is detected.
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trivy:
+    name: Vuln, secret & misconfig scan (Trivy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload SARIF to the Security tab (code scanning)
+    steps:
+      - uses: actions/checkout@v4
+
+      # Report-only for now (exit-code 0): findings show up in the Security tab without
+      # blocking. Once the Dockerfile is hardened / findings triaged, set exit-code: '1'
+      # to make this a hard gate.
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: '0'
+
+      - name: Upload Trivy results to code scanning
+        if: always()   # publish even if a future exit-code:1 fails the scan step
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+# ---------------------------------------------------------------------------
+# CD (deferred): not deployed anywhere yet. When deployment is set up, add a
+# `deploy` job here (e.g. on tags) that builds & pushes the Docker image and
+# runs a Trivy *image* scan (scan-type: image) for base-image CVE coverage.
+# ---------------------------------------------------------------------------
