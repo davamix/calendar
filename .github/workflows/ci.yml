@@ -51,7 +51,7 @@ jobs:
           fetch-depth: 0   # full history so previously committed secrets are caught too
 
       # Hard gate: fails the build if any secret is detected.
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
