@@ -13,9 +13,9 @@
 		"ghcr.io/postfinance/devcontainer-features/git-lfs:1": {}
 	},
 
-	// Hydrate the shared `standards` submodule (.standards/) on container create so the
-	// guidelines are on disk and importable by CLAUDE.md. See .standards/working-with-standards.md.
-	"postCreateCommand": "git submodule update --init --remote .standards"
+	// On container create: hydrate the .standards submodule, install gitleaks, and enable
+	// the pre-commit secret-scan hook. See .devcontainer/post-create.sh.
+	"postCreateCommand": "bash .devcontainer/post-create.sh"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
