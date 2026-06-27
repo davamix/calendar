@@ -73,6 +73,9 @@ jobs:
           scanners: vuln,secret,misconfig
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          # Apply the severity filter to the SARIF too, so exit-code only fires on
+          # HIGH/CRITICAL (otherwise the action reports — and gates on — all severities).
+          limit-severities-for-sarif: true
           format: sarif
           output: trivy-results.sarif
           exit-code: '1'
