@@ -11,7 +11,11 @@
 		"ghcr.io/devcontainers-extra/features/claude-code:2": {},
 		"ghcr.io/devcontainer-community/devcontainer-features/ripgrep:1": {},
 		"ghcr.io/postfinance/devcontainer-features/git-lfs:1": {}
-	}
+	},
+
+	// Hydrate the shared `standards` submodule (.standards/) on container create so the
+	// guidelines are on disk and importable by CLAUDE.md. See .standards/working-with-standards.md.
+	"postCreateCommand": "git submodule update --init --remote .standards"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
