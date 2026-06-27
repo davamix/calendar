@@ -22,4 +22,7 @@ COPY --from=build /app/publish .
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 
+# Run as the image's built-in non-root user (resolves Trivy AVD-DS-0002).
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "CalendarApi.dll"]

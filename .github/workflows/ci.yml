@@ -64,9 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Report-only for now (exit-code 0): findings show up in the Security tab without
-      # blocking. Once the Dockerfile is hardened / findings triaged, set exit-code: '1'
-      # to make this a hard gate.
+      # Hard gate: fail on any HIGH/CRITICAL vuln/secret/misconfig finding.
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -77,16 +75,16 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-results.sarif
-          exit-code: '0'
+          exit-code: '1'
 
       - name: Upload Trivy results to code scanning
-        if: always()   # publish even if a future exit-code:1 fails the scan step
+        if: always()   # publish even when the scan step fails the job
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
+          category: trivy-fs
 
 # ---------------------------------------------------------------------------
-# CD (deferred): not deployed anywhere yet. When deployment is set up, add a
-# `deploy` job here (e.g. on tags) that builds & pushes the Docker image and
-# runs a Trivy *image* scan (scan-type: image) for base-image CVE coverage.
+# CD (image build + Trivy image scan) lives in cd.yml, triggered on tags /
+# manual dispatch. The actual deploy step there is still deferred (no target).
 # ---------------------------------------------------------------------------

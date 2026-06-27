@@ -1,0 +1,57 @@
+name: CD
+
+# Release-driven: build and scan the container image. Deploy is deferred (no target yet),
+# so this runs on version tags and manual dispatch rather than on every push.
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    name: Build & scan image (Trivy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write   # upload SARIF to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: calendar-poc:${{ github.sha }}
+
+      # Hard gate: fail on fixable HIGH/CRITICAL vulns or secrets baked into the image.
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: calendar-poc:${{ github.sha }}
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-image.sarif
+          exit-code: '1'
+
+      - name: Upload image scan to code scanning
+        if: always()   # publish even when the scan step fails the job
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+      # ---------------------------------------------------------------------
+      # Deploy (deferred): no target yet. When ready, add a deploy job that
+      # logs in to a registry (docker/login-action), rebuilds with push: true,
+      # and triggers the deployment (compose pull / k8s / host webhook).
+      # ---------------------------------------------------------------------
