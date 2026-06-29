@@ -372,3 +372,35 @@ input, textarea { font: inherit; }
   .day-list { padding: var(--space-4); }
   .nav-tab { display: none; }
 }
+
+/* --- Auth header + assignees (added with multi-user) --------------------- */
+.user-chip {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  color: var(--color-on-surface-variant); font: var(--type-body-sm);
+  max-width: 14rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.user-chip .material-symbols-outlined { font-size: 20px; }
+.logout-form { display: inline-flex; margin: 0; }
+
+.assignee-section { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
+.assignee-label { font: var(--type-label-caps); letter-spacing: var(--tracking-caps); color: var(--color-on-surface-variant); }
+.assignee-list { display: flex; flex-wrap: wrap; gap: var(--space-1); color: var(--color-on-surface-variant); font: var(--type-body-sm); }
+.assignee-chip {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: 2px var(--space-2); border-radius: var(--radius);
+  background: var(--color-surface-container-high); color: var(--color-on-surface);
+}
+.assignee-remove {
+  border: none; background: none; cursor: pointer; line-height: 1;
+  font-size: 1rem; color: var(--color-on-surface-variant);
+}
+.assignee-remove:hover { color: var(--color-error); }
+.assignee-add { display: flex; gap: var(--space-2); }
+.assignee-add select {
+  flex: 1;
+  font: var(--type-body-sm); color: var(--color-on-surface);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border); background: var(--color-surface-container-low);
+}
+.assignee-add select:focus { outline: none; border-color: var(--color-primary); }
+.readonly-note { color: var(--color-on-surface-variant); font: var(--type-body-sm); margin-top: var(--space-2); }

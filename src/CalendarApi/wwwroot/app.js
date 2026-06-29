@@ -4,18 +4,36 @@
 // Maps a UI "kind" to its REST resource. Projects and tasks share the shape.
 const RESOURCE = { project: "projects", task: "tasks" };
 
+// Read a cookie value (used for the readable antiforgery token).
+function getCookie(name) {
+  return document.cookie.split("; ").find((c) => c.startsWith(name + "="))?.split("=")[1];
+}
+// CSRF header for cookie-authenticated mutations (the server validates it; bearer callers skip it).
+function csrfHeaders() {
+  const token = getCookie("XSRF-TOKEN");
+  return token ? { "X-CSRF-TOKEN": decodeURIComponent(token) } : {};
+}
+// When the API says we're unauthenticated, send the browser to the BFF login (→ Logto hosted page).
+function guardAuth(res) {
+  if (res.status === 401) {
+    window.location.assign("/login");
+    throw new Error("Not authenticated");
+  }
+  return res;
+}
+
 async function apiList(kind) {
-  const res = await fetch(`/api/${RESOURCE[kind]}/`);
+  const res = guardAuth(await fetch(`/api/${RESOURCE[kind]}/`));
   if (!res.ok) throw new Error(`Failed to load ${kind}s`);
   return res.json();
 }
 async function apiSearch(kind, name) {
-  const res = await fetch(`/api/${RESOURCE[kind]}/?name=${encodeURIComponent(name)}`);
+  const res = guardAuth(await fetch(`/api/${RESOURCE[kind]}/?name=${encodeURIComponent(name)}`));
   if (!res.ok) throw new Error(`Search failed`);
   return res.json();
 }
 async function apiGetById(kind, id) {
-  const res = await fetch(`/api/${RESOURCE[kind]}/${id}`);
+  const res = guardAuth(await fetch(`/api/${RESOURCE[kind]}/${id}`));
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Lookup failed");
   return res.json();
@@ -27,15 +45,70 @@ async function apiUpdate(kind, id, body) {
   return send(`/api/${RESOURCE[kind]}/${id}`, "PUT", body);
 }
 async function apiDelete(kind, id) {
-  const res = await fetch(`/api/${RESOURCE[kind]}/${id}`, { method: "DELETE" });
+  const res = guardAuth(await fetch(`/api/${RESOURCE[kind]}/${id}`, { method: "DELETE", headers: csrfHeaders() }));
+  if (res.status === 403) throw new Error("Only the owner can delete this element.");
   if (!res.ok) throw new Error("Delete failed");
 }
+
+// The label shown top-right. Prefer the OIDC name/email; when Logto returns neither (e.g.
+// username-only accounts), fall back to the username from the directory, then to "Account".
+async function resolveMyName(me) {
+  if (me.displayName) return me.displayName;
+  if (me.email) return me.email;
+  try {
+    const dir = await apiUsers("");
+    const entry = dir.find((u) => u.id === me.id);
+    return entry?.name || entry?.email || "Account";
+  } catch {
+    return "Account";
+  }
+}
+
+// Current user (drives the header + ownership checks). null when not signed in.
+async function apiMe() {
+  const res = await fetch("/api/me");
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error("Failed to load current user");
+  return res.json();
+}
+
+// Assignees + user directory.
+async function apiGetAssignees(kind, id) {
+  const res = guardAuth(await fetch(`/api/${RESOURCE[kind]}/${id}/assignees`));
+  if (!res.ok) throw new Error("Failed to load assignees");
+  return res.json();
+}
+async function apiAddAssignee(kind, id, userId) {
+  const res = guardAuth(await fetch(`/api/${RESOURCE[kind]}/${id}/assignees`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...csrfHeaders() },
+    body: JSON.stringify({ userId }),
+  }));
+  if (res.status === 403) throw new Error("Only the owner can add assignees.");
+  if (!res.ok) throw new Error("Failed to add assignee");
+}
+async function apiRemoveAssignee(kind, id, userId) {
+  const res = guardAuth(await fetch(`/api/${RESOURCE[kind]}/${id}/assignees/${encodeURIComponent(userId)}`, {
+    method: "DELETE",
+    headers: csrfHeaders(),
+  }));
+  if (res.status === 403) throw new Error("Only the owner can remove assignees.");
+  if (!res.ok) throw new Error("Failed to remove assignee");
+}
+async function apiUsers(search) {
+  const q = search ? `?search=${encodeURIComponent(search)}` : "";
+  const res = guardAuth(await fetch(`/api/users${q}`));
+  if (!res.ok) throw new Error("Failed to load users");
+  return res.json();
+}
+
 async function send(url, method, body) {
-  const res = await fetch(url, {
+  const res = guardAuth(await fetch(url, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...csrfHeaders() },
     body: JSON.stringify(body),
-  });
+  }));
+  if (res.status === 403) throw new Error("Only the owner can modify this element.");
   if (res.status === 400) {
     const problem = await res.json().catch(() => null);
     const msg = problem?.errors
@@ -51,6 +124,10 @@ async function send(url, method, body) {
 const state = {
   view: startOfMonth(new Date()), // first day of the month being shown
   items: [],                      // all projects + tasks, each tagged with .kind
+  me: null,                       // current user { id, email, displayName }
+  editingOwnerId: null,           // owner of the element open in the modal
+  directory: [],                  // cached user directory for the assignee picker
+  pendingAssignees: [],           // assignees staged during create (applied after save)
 };
 
 const MONTHS = ["January", "February", "March", "April", "May", "June",
@@ -258,6 +335,12 @@ const modal = {
   color: document.getElementById("fieldColor"),
   error: document.getElementById("formError"),
   deleteBtn: document.getElementById("deleteBtn"),
+  saveBtn: document.getElementById("saveBtn"),
+  assigneeSection: document.getElementById("assigneeSection"),
+  assigneeList: document.getElementById("assigneeList"),
+  assigneeSelect: document.getElementById("assigneeSelect"),
+  addAssigneeBtn: document.getElementById("addAssigneeBtn"),
+  readonlyNote: document.getElementById("readonlyNote"),
 };
 
 // Default element colour per kind (from the curated palette) when none is set.
@@ -276,11 +359,18 @@ function openCreate(kind) {
   modal.color.value = DEFAULT_COLOR[kind];
   modal.error.classList.add("hidden");
   modal.deleteBtn.classList.add("hidden");
+  state.editingOwnerId = state.me?.id ?? null;
+  state.pendingAssignees = [];
+  setReadOnly(false);
+  // You'll own it (auto-assigned). Assignees chosen here are staged and applied after save.
+  loadCreateAssignees();
   showModal();
 }
 
 function openEdit(item) {
-  modal.title.textContent = `Edit ${item.kind}`;
+  const isOwner = !!state.me && item.ownerId === state.me.id;
+  state.editingOwnerId = item.ownerId;
+  modal.title.textContent = isOwner ? `Edit ${item.kind}` : `View ${item.kind}`;
   modal.id.value = item.id;
   modal.kind.value = item.kind;
   modal.name.value = item.name;
@@ -289,8 +379,144 @@ function openEdit(item) {
   modal.end.value = item.endDate;
   modal.color.value = item.color ?? DEFAULT_COLOR[item.kind];
   modal.error.classList.add("hidden");
-  modal.deleteBtn.classList.remove("hidden");
+  modal.deleteBtn.classList.toggle("hidden", !isOwner);
+  setReadOnly(!isOwner);
+  loadAssignees(item.kind, item.id, isOwner);
   showModal();
+}
+
+// Toggle the form between editable (owner) and read-only (assignee) states.
+function setReadOnly(ro) {
+  for (const el of [modal.name, modal.description, modal.start, modal.end, modal.color])
+    el.disabled = ro;
+  modal.saveBtn.classList.toggle("hidden", ro);
+  modal.readonlyNote.classList.toggle("hidden", !ro);
+}
+
+// Create mode: the element doesn't exist yet, so assignees are staged client-side and applied
+// after it's saved. Shows the same control as edit, for a consistent experience.
+async function loadCreateAssignees() {
+  modal.assigneeSection.classList.remove("hidden");
+  modal.assigneeSelect.parentElement.classList.remove("hidden");
+  modal.assigneeList.innerHTML = "Loading…";
+  try {
+    state.directory = await apiUsers("");
+    renderCreateAssignees();
+  } catch (err) {
+    modal.assigneeList.textContent = err.message;
+  }
+}
+
+function renderCreateAssignees() {
+  // List = you (owner) + any staged assignees (removable).
+  modal.assigneeList.innerHTML = "";
+  const you = document.createElement("span");
+  you.className = "assignee-chip";
+  you.textContent = `${state.me?.displayName || state.me?.email || "You"} (owner)`;
+  modal.assigneeList.appendChild(you);
+  for (const a of state.pendingAssignees) {
+    const chip = document.createElement("span");
+    chip.className = "assignee-chip";
+    chip.textContent = a.label;
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "assignee-remove";
+    x.textContent = "×";
+    x.setAttribute("aria-label", `Remove ${a.label}`);
+    x.addEventListener("click", () => {
+      state.pendingAssignees = state.pendingAssignees.filter((p) => p.id !== a.id);
+      renderCreateAssignees();
+    });
+    chip.appendChild(x);
+    modal.assigneeList.appendChild(chip);
+  }
+  // Picker = directory minus yourself minus already-staged.
+  const taken = new Set([state.me?.id, ...state.pendingAssignees.map((p) => p.id)]);
+  modal.assigneeSelect.innerHTML = "";
+  for (const u of state.directory.filter((u) => !taken.has(u.id))) {
+    const opt = document.createElement("option");
+    opt.value = u.id;
+    opt.textContent = u.name || u.email || u.id;
+    modal.assigneeSelect.appendChild(opt);
+  }
+}
+
+// Load + render the element's assignees. Owner sees add/remove controls; assignees see a list.
+async function loadAssignees(kind, id, isOwner) {
+  modal.assigneeSection.classList.remove("hidden");
+  modal.assigneeList.innerHTML = "Loading…";
+  try {
+    const [ids, directory] = await Promise.all([apiGetAssignees(kind, id), apiUsers("")]);
+    const nameOf = new Map(directory.map((u) => [u.id, u.name || u.email || u.id]));
+    renderAssignees(kind, id, ids, nameOf, isOwner);
+
+    // Populate the picker with users who aren't assigned yet (owner only).
+    modal.assigneeSelect.innerHTML = "";
+    const assignable = directory.filter((u) => !ids.includes(u.id));
+    for (const u of assignable) {
+      const opt = document.createElement("option");
+      opt.value = u.id;
+      opt.textContent = u.name || u.email || u.id;
+      modal.assigneeSelect.appendChild(opt);
+    }
+    modal.assigneeSelect.parentElement.classList.toggle("hidden", !isOwner);
+  } catch (err) {
+    modal.assigneeList.textContent = err.message;
+  }
+}
+
+function renderAssignees(kind, id, ids, nameOf, isOwner) {
+  modal.assigneeList.innerHTML = "";
+  for (const uid of ids) {
+    const chip = document.createElement("span");
+    chip.className = "assignee-chip";
+    const isElementOwner = uid === state.editingOwnerId;
+    chip.textContent = (nameOf.get(uid) || uid) + (isElementOwner ? " (owner)" : "");
+    // Owner can remove anyone except the owner (always assigned).
+    if (isOwner && !isElementOwner) {
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "assignee-remove";
+      x.textContent = "×";
+      x.setAttribute("aria-label", `Remove ${nameOf.get(uid) || uid}`);
+      x.addEventListener("click", () => removeAssignee(kind, id, uid));
+      chip.appendChild(x);
+    }
+    modal.assigneeList.appendChild(chip);
+  }
+  if (ids.length === 0) modal.assigneeList.textContent = "No assignees.";
+}
+
+async function onAddAssignee() {
+  const userId = modal.assigneeSelect.value;
+  if (!userId) return;
+
+  // Create mode (no id yet): stage the assignee; it's applied after the element is saved.
+  if (!modal.id.value) {
+    const label = modal.assigneeSelect.selectedOptions[0]?.text || userId;
+    if (!state.pendingAssignees.some((p) => p.id === userId))
+      state.pendingAssignees.push({ id: userId, label });
+    renderCreateAssignees();
+    return;
+  }
+
+  try {
+    await apiAddAssignee(modal.kind.value, modal.id.value, userId);
+    await loadAssignees(modal.kind.value, modal.id.value, true);
+    await refresh();
+  } catch (err) {
+    showFormError(err.message);
+  }
+}
+
+async function removeAssignee(kind, id, userId) {
+  try {
+    await apiRemoveAssignee(kind, id, userId);
+    await loadAssignees(kind, id, true);
+    await refresh();
+  } catch (err) {
+    showFormError(err.message);
+  }
 }
 
 function showModal() {
@@ -321,7 +547,11 @@ async function saveElement(evt) {
       await apiUpdate(kind, id, body);
       toast("Saved changes");
     } else {
-      await apiCreate(kind, body);
+      const created = await apiCreate(kind, body);
+      // Apply assignees staged during create.
+      for (const a of state.pendingAssignees)
+        await apiAddAssignee(kind, created.id, a.id);
+      state.pendingAssignees = [];
       toast(`${kind === "project" ? "Project" : "Task"} created`);
     }
     closeModal();
@@ -424,7 +654,7 @@ function escapeHtml(s) {
 }
 
 // --- Wiring --------------------------------------------------------------
-function init() {
+async function init() {
   document.getElementById("prevMonth").addEventListener("click", () => {
     state.view = new Date(state.view.getFullYear(), state.view.getMonth() - 1, 1);
     render();
@@ -444,6 +674,7 @@ function init() {
 
   document.getElementById("elementForm").addEventListener("submit", saveElement);
   document.getElementById("deleteBtn").addEventListener("click", deleteElement);
+  document.getElementById("addAssigneeBtn").addEventListener("click", onAddAssignee);
   document.getElementById("cancelBtn").addEventListener("click", closeModal);
   document.getElementById("modalClose").addEventListener("click", closeModal);
   modal.backdrop.addEventListener("click", (e) => { if (e.target === modal.backdrop) closeModal(); });
@@ -462,6 +693,16 @@ function init() {
     }
   });
 
+  // Resolve the signed-in user first; with no session, redirect to the BFF login (→ Logto).
+  const me = await apiMe();
+  if (!me) {
+    window.location.assign("/login");
+    return;
+  }
+  state.me = me;
+  document.getElementById("userName").textContent = await resolveMyName(me);
+  const token = getCookie("XSRF-TOKEN");
+  if (token) document.getElementById("csrfField").value = decodeURIComponent(token);
   refresh();
 }
 

@@ -1,0 +1,24 @@
+# Reverse proxy for the bundled (standalone) stack. One entry port (8080) fronts the app and
+# Logto so the OIDC issuer is a single hostname that BOTH the browser (via *.localhost → 127.0.0.1
+# + the forwarded 8080) and the app container (via the Docker network alias on this service)
+# resolve to the proxy. See docs/deployment.md. Production terminates TLS at the shared proxy.
+{
+	admin off
+	auto_https off
+}
+
+# The calendar app — kept on the bare `localhost` host so existing Logto redirect URIs
+# (http://localhost:8080/signin-oidc) keep matching.
+http://localhost:8080 {
+	reverse_proxy calendar:8080
+}
+
+# Logto OIDC + Management API (both on Logto's core port 3001).
+http://auth.calendar.localhost:8080 {
+	reverse_proxy logto:3001
+}
+
+# Logto admin console.
+http://admin.calendar.localhost:8080 {
+	reverse_proxy logto:3002
+}

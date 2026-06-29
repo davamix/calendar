@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" />
-  <link rel="stylesheet" href="tokens.css?v=2" />
-  <link rel="stylesheet" href="styles.css?v=2" />
+  <link rel="stylesheet" href="tokens.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=4" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>" />
 </head>
 <body>
@@ -25,9 +25,16 @@
         <input id="searchInput" type="search" placeholder="Search events, projects…" autocomplete="off" />
       </form>
       <div class="header-icons">
-        <button class="icon-btn" type="button" aria-label="Notifications"><span class="material-symbols-outlined">notifications</span></button>
-        <button class="icon-btn" type="button" aria-label="Settings"><span class="material-symbols-outlined">settings</span></button>
-        <div class="avatar" aria-hidden="true"><span class="material-symbols-outlined">person</span></div>
+        <span class="user-chip" title="Signed in user">
+          <span class="material-symbols-outlined">person</span>
+          <span id="userName"></span>
+        </span>
+        <!-- Logout is an antiforgery-protected POST (not a link). The token is filled from the
+             XSRF-TOKEN cookie by app.js before the form can be submitted. -->
+        <form id="logoutForm" method="post" action="/logout" class="logout-form">
+          <input type="hidden" name="__RequestVerificationToken" id="csrfField" />
+          <button class="icon-btn" type="submit" aria-label="Sign out" title="Sign out"><span class="material-symbols-outlined">logout</span></button>
+        </form>
       </div>
     </div>
   </header>
@@ -89,6 +96,19 @@
           <input type="text" id="fieldColor" placeholder="#004ac6" maxlength="7"
                  pattern="#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})" />
         </label>
+
+        <!-- Assignees: staged on create (applied after save), managed by the owner on edit,
+             read-only for assignees. -->
+        <div id="assigneeSection" class="assignee-section hidden">
+          <span class="assignee-label">Assignees</span>
+          <div id="assigneeList" class="assignee-list"></div>
+          <div class="assignee-add">
+            <select id="assigneeSelect" aria-label="Choose a user to assign"></select>
+            <button type="button" id="addAssigneeBtn" class="btn outline">Add</button>
+          </div>
+        </div>
+        <p id="readonlyNote" class="readonly-note hidden">Read-only — you are assigned to this element but not its owner.</p>
+
         <p id="formError" class="form-error hidden"></p>
         <div class="modal-foot">
           <button type="button" id="deleteBtn" class="btn danger hidden">Delete</button>
@@ -113,6 +133,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

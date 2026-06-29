@@ -19,3 +19,5 @@ Thumbs.db
 
 ## Local secrets / environment (never commit; see .env.example for required names)
 .env
+
+user_test.txt

@@ -24,6 +24,16 @@ public abstract class CalendarItem
     /// <summary>Hex colour (e.g. <c>#4f46e5</c>) used to fill the element's shape in the UI.</summary>
     public string? Color { get; set; }
 
+    /// <summary>
+    /// The Logto <c>sub</c> of the owner (creator). Owner-only: edit, delete, manage assignees.
+    /// Set server-side from the authenticated user — never from a request payload.
+    /// </summary>
+    public string OwnerId { get; set; } = string.Empty;
+
+    /// <summary>Audit: when/who created the element (the owner at creation time).</summary>
+    public DateTimeOffset CreatedAt { get; set; }
+    public string? CreatedBy { get; set; }
+
     /// <summary>The concrete kind, surfaced in API responses so clients can tell them apart.</summary>
     public abstract ElementKind Kind { get; }
 

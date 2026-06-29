@@ -31,7 +31,10 @@ jobs:
       - name: Build
         run: dotnet build CalendarPoc.slnx -c Release --no-restore
 
-      # No test projects yet — add `dotnet test CalendarPoc.slnx --no-build` here once they exist.
+      # Unit + integration tests. Integration tests use Testcontainers, which needs a Docker
+      # daemon — available on ubuntu-latest GitHub runners out of the box.
+      - name: Test
+        run: dotnet test CalendarPoc.slnx -c Release --no-build
 
       - name: Audit NuGet packages for known vulnerabilities
         run: |
