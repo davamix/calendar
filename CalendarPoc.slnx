@@ -2,4 +2,8 @@
   <Folder Name="/src/">
     <Project Path="src/CalendarApi/CalendarApi.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CalendarApi.IntegrationTests/CalendarApi.IntegrationTests.csproj" />
+    <Project Path="tests/CalendarApi.UnitTests/CalendarApi.UnitTests.csproj" />
+  </Folder>
 </Solution>

@@ -1,13 +1,17 @@
-# Calendar POC
+# Calendar
 
-A proof-of-concept calendar app for managing **work projects** and **daily tasks**.
-It ships a web UI **and** a REST API for external integrations. Data lives **in memory**
-(seeded with sample data on every start) — there is no database.
+A multi-user calendar app for managing **work projects** and **daily tasks**. It ships a web
+UI **and** a REST API. Data is persisted in **PostgreSQL**, and users sign in via **Logto**.
 
-> Stack: **.NET 10** (ASP.NET Core minimal APIs) + vanilla HTML/CSS/JS frontend, packaged with **Docker**.
+> Stack: **.NET 10** (ASP.NET Core minimal APIs) + vanilla HTML/CSS/JS frontend + EF Core/PostgreSQL,
+> packaged with **Docker**.
 
-The web UI follows a shared design system — see **[docs/STYLEGUIDE.md](docs/STYLEGUIDE.md)**
-(design tokens in [`wwwroot/tokens.css`](src/CalendarApi/wwwroot/tokens.css)).
+- **Auth & access model:** [docs/auth.md](docs/auth.md) — Logto (BFF cookie for the browser, JWT
+  bearer for machines); each element has an **owner** (creator) and **read-only assignees**.
+- **Security baseline:** OWASP ASVS 5.0 L2, tracked in [docs/security/asvs-l2/](docs/security/asvs-l2/).
+- **Deployment:** standalone or integrated — [docs/deployment.md](docs/deployment.md).
+- **Decisions:** recorded as ADRs in [docs/decisions/](docs/decisions/).
+- **Design system:** [docs/STYLEGUIDE.md](docs/STYLEGUIDE.md) (tokens in [`wwwroot/tokens.css`](src/CalendarApi/wwwroot/tokens.css)).
 
 ---
 
@@ -25,26 +29,28 @@ inclusive, `YYYY-MM-DD`), and an optional `color` (hex, e.g. `#4f46e5`).
 
 ---
 
-## Run with Docker (recommended)
+## Run with Docker (standalone — bundles Postgres + Logto + Caddy)
 
 ```bash
-# Build + start
-docker compose up --build
-
-# …or with plain docker:
-docker build -t calendar-poc .
-docker run --rm -p 8080:8080 calendar-poc
+cp .env.example .env          # fill in the passwords (see docs/auth.md)
+docker compose --profile standalone up --build
 ```
 
-Then open **http://localhost:8080**.
+This starts PostgreSQL, Logto, the app, and a **Caddy** reverse proxy (the single entry point on
+port **8080** — forward only that port). On first run, complete the one-time
+[Logto console checklist](docs/auth.md#logto-registration-manifest-console-checklist) at the admin
+console **http://admin.calendar.localhost:8080**, paste the resulting IDs into `.env`, and re-run
+`up -d`. Then open **http://localhost:8080** — with no session you're redirected to Logto's hosted
+sign-in/sign-up page (`http://auth.calendar.localhost:8080`).
 
-## Run locally (.NET 10 SDK)
+See [docs/deployment.md](docs/deployment.md) for how the proxy makes the OIDC flow work end-to-end
+and for integrated (shared-infra) mode.
+
+## Run tests
 
 ```bash
-dotnet run --project src/CalendarApi
+dotnet test CalendarPoc.slnx   # unit + integration (integration uses Testcontainers → needs Docker)
 ```
-
-The console prints the listening URL (e.g. `http://localhost:5xxx`).
 
 ---
 
@@ -67,18 +73,27 @@ The console prints the listening URL (e.g. `http://localhost:5xxx`).
 
 ## REST API
 
-Base URL: `http://localhost:8080`. The same operations exist for `projects` and `tasks`;
-substitute `{kind}` with `projects` or `tasks`.
+Base URL: `http://localhost:8080`. **Every `/api/*` endpoint requires authentication** — the
+browser via the BFF cookie, machine callers via a `Bearer` JWT (audience = the Calendar API
+resource). The same operations exist for `projects` and `tasks`; substitute `{kind}`.
 
-| Method   | Route                      | Description                                  |
-|----------|----------------------------|----------------------------------------------|
-| `GET`    | `/api/{kind}`              | List all; `?name=foo` filters by name        |
-| `GET`    | `/api/{kind}/{id}`         | Get one by ID (404 if missing)               |
-| `POST`   | `/api/{kind}`              | Create (201 + created element)               |
-| `PUT`    | `/api/{kind}/{id}`         | Update (200, or 404 if missing)              |
-| `DELETE` | `/api/{kind}/{id}`         | Delete (204, or 404 if missing)              |
-| `GET`    | `/health`                  | Health probe                                 |
-| `GET`    | `/openapi/v1.json`         | OpenAPI document for the API                 |
+Reads return only elements you own or are assigned to; **edit/delete/assign are owner-only**
+(visible-but-not-owner → `403`, not-visible → `404`).
+
+| Method   | Route                                   | Description                                  |
+|----------|-----------------------------------------|----------------------------------------------|
+| `GET`    | `/api/{kind}`                           | List visible; `?name=foo` filters by name    |
+| `GET`    | `/api/{kind}/{id}`                      | Get one (404 if not visible)                 |
+| `POST`   | `/api/{kind}`                           | Create (201; creator becomes owner+assignee) |
+| `PUT`    | `/api/{kind}/{id}`                      | Update (owner only)                          |
+| `DELETE` | `/api/{kind}/{id}`                      | Delete (owner only)                          |
+| `GET`    | `/api/{kind}/{id}/assignees`            | List assignee ids                            |
+| `POST`   | `/api/{kind}/{id}/assignees`            | Assign a user `{ "userId": "…" }` (owner)    |
+| `DELETE` | `/api/{kind}/{id}/assignees/{userId}`   | Remove an assignee (owner)                   |
+| `GET`    | `/api/users`                            | User directory for the assignee picker       |
+| `GET`    | `/api/me`                               | The signed-in user                           |
+| `GET`    | `/login`, `POST /logout`                | BFF sign-in / sign-out                       |
+| `GET`    | `/health`, `/openapi/v1.json`           | Health probe / OpenAPI document              |
 
 **Request body** (create/update):
 
@@ -98,17 +113,18 @@ substitute `{kind}` with `projects` or `tasks`.
 
 ### Examples
 
+Machine callers send a `Bearer` JWT (audience = the Calendar API resource) from Logto:
+
 ```bash
+TOKEN=...   # an access token for the Calendar API resource
+
 # Create a task
 curl -X POST http://localhost:8080/api/tasks \
-  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"name":"Write docs","description":"Draft the API docs","startDate":"2026-06-22","endDate":"2026-06-23"}'
 
 # Search projects by name
-curl "http://localhost:8080/api/projects?name=mobile"
-
-# Delete by id
-curl -X DELETE http://localhost:8080/api/tasks/<id>
+curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/projects?name=mobile"
 ```
 
 ---
@@ -117,19 +133,28 @@ curl -X DELETE http://localhost:8080/api/tasks/<id>
 
 ```
 .
-├── Dockerfile                 # multi-stage build (SDK → aspnet runtime)
-├── docker-compose.yml         # maps host 8080 → container 8080
+├── Dockerfile                 # multi-stage build (SDK → aspnet runtime, non-root)
+├── docker-compose.yml         # app + (standalone profile) bundled Postgres + Logto + Caddy
+├── Caddyfile                  # reverse proxy: routes app + Logto behind one port
+├── db/init/                   # least-privilege role + bundled Logto DB (fresh-volume init)
 ├── CalendarPoc.slnx
-└── src/CalendarApi/
-    ├── Program.cs             # app wiring, DI, endpoint mapping, CORS, OpenAPI
-    ├── Models/                # CalendarItem base, Project, WorkTask, request DTO
-    ├── Services/              # generic in-memory store + sample data seeder
-    ├── Endpoints/             # generic CRUD+search endpoint mapper (shared by both kinds)
-    └── wwwroot/               # index.html, app.js, styles.css (the web UI)
+├── docs/                      # auth, deployment, decisions (ADRs), security/asvs-l2
+├── .claude/agents/            # security / access-control / architecture / migration reviewers
+├── src/CalendarApi/
+│   ├── Program.cs             # app wiring, DI, endpoint mapping, OpenAPI
+│   ├── Auth/                  # dual-scheme auth + antiforgery
+│   ├── Models/                # CalendarItem, Project, WorkTask, AppUser, assignees
+│   ├── Data/                  # EF Core DbContext (global query filter)
+│   ├── Services/              # store, ICurrentUser, Logto Management client, seeder
+│   ├── Endpoints/             # element CRUD + assignees, auth, users
+│   ├── Migrations/            # EF Core migrations
+│   └── wwwroot/               # index.html, app.js, styles.css (the web UI)
+└── tests/                     # CalendarApi.UnitTests + CalendarApi.IntegrationTests
 ```
 
-## Notes & limitations (it's a POC)
+## Notes & current limitations
 
-- **Data is in memory** — everything resets to the seeded sample data when the app restarts.
-- CORS is wide open (`AllowAnyOrigin`) so external apps can call the API freely.
-- No auth, no pagination, no persistence — intentionally out of scope for this POC.
+- Access gating is "any signed-in user" for now; per-app scoping via Logto **Organizations** is
+  deferred until a second ecosystem app needs it.
+- MCP + dynamic client registration are out of scope (a distinct audience is reserved for later).
+- No pagination yet; the API surface is unversioned.
