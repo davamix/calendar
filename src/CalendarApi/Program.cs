@@ -114,7 +114,7 @@ app.UseSpaAntiforgery();
 app.UseDefaultFiles();   // serve wwwroot/index.html at "/"
 app.UseStaticFiles(new StaticFileOptions
 {
-    // POC: always revalidate so edited HTML/CSS/JS are picked up on reload (no stale
+    // Dev: always revalidate so edited HTML/CSS/JS are picked up on reload (no stale
     // cache after a class rename). A production build would fingerprint asset URLs and
     // cache them long-term instead.
     OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache",

@@ -13,7 +13,7 @@ source of truth.
 ## Running
 
 ```bash
-dotnet test CalendarPoc.slnx          # everything
+dotnet test Calendar.slnx          # everything
 dotnet test tests/CalendarApi.UnitTests          # fast, no Docker
 dotnet test tests/CalendarApi.IntegrationTests   # boots a Testcontainers Postgres
 ```

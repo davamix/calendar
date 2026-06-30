@@ -28,14 +28,14 @@ jobs:
           context: .
           push: false
           load: true
-          tags: calendar-poc:${{ github.sha }}
+          tags: calendar:${{ github.sha }}
 
       # Hard gate: fail on fixable HIGH/CRITICAL vulns or secrets baked into the image.
       - name: Trivy image scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
-          image-ref: calendar-poc:${{ github.sha }}
+          image-ref: calendar:${{ github.sha }}
           scanners: vuln,secret
           severity: HIGH,CRITICAL
           ignore-unfixed: true

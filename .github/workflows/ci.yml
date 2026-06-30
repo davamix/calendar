@@ -26,19 +26,19 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore CalendarPoc.slnx
+        run: dotnet restore Calendar.slnx
 
       - name: Build
-        run: dotnet build CalendarPoc.slnx -c Release --no-restore
+        run: dotnet build Calendar.slnx -c Release --no-restore
 
       # Unit + integration tests. Integration tests use Testcontainers, which needs a Docker
       # daemon — available on ubuntu-latest GitHub runners out of the box.
       - name: Test
-        run: dotnet test CalendarPoc.slnx -c Release --no-build
+        run: dotnet test Calendar.slnx -c Release --no-build
 
       - name: Audit NuGet packages for known vulnerabilities
         run: |
-          report=$(dotnet list CalendarPoc.slnx package --vulnerable --include-transitive)
+          report=$(dotnet list Calendar.slnx package --vulnerable --include-transitive)
           echo "$report"
           if echo "$report" | grep -q "following vulnerable packages"; then
             echo "::error::Vulnerable NuGet packages detected"

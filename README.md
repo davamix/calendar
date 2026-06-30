@@ -49,7 +49,7 @@ and for integrated (shared-infra) mode.
 ## Run tests
 
 ```bash
-dotnet test CalendarPoc.slnx   # unit + integration (integration uses Testcontainers → needs Docker)
+dotnet test Calendar.slnx   # unit + integration (integration uses Testcontainers → needs Docker)
 ```
 
 ---
@@ -137,7 +137,7 @@ curl -H "Authorization: Bearer $TOKEN" "http://localhost:8080/api/projects?name=
 ├── docker-compose.yml         # app + (standalone profile) bundled Postgres + Logto + Caddy
 ├── Caddyfile                  # reverse proxy: routes app + Logto behind one port
 ├── db/init/                   # least-privilege role + bundled Logto DB (fresh-volume init)
-├── CalendarPoc.slnx
+├── Calendar.slnx
 ├── docs/                      # auth, deployment, decisions (ADRs), security/asvs-l2
 ├── .claude/agents/            # security / access-control / architecture / migration reviewers
 ├── src/CalendarApi/

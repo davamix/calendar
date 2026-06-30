@@ -49,8 +49,8 @@ services:
 
   calendar:
     build: .
-    image: calendar-poc:latest
-    container_name: calendar-poc
+    image: calendar:latest
+    container_name: calendar
     depends_on:
       db:
         # required:false so the app still starts in integrated mode (no bundled db/logto):
