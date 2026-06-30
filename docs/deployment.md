@@ -91,4 +91,5 @@ never values; secrets come from the environment only ([.standards/security.md](.
 ## Production notes (later)
 
 TLS terminates at a shared reverse proxy (no plaintext to clients). The container already runs
-as a non-root user ([Dockerfile](../Dockerfile)). Image is scanned by Trivy in CD.
+as a non-root user ([Dockerfile](../Dockerfile)). The image is built, scanned by Trivy, and
+**published to GHCR on each `v*` release tag** — see [releasing.md](releasing.md).
