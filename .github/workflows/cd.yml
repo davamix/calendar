@@ -15,8 +15,42 @@ env:
   IMAGE: ghcr.io/${{ github.repository }}   # ghcr.io/davamix/calendar
 
 jobs:
+  # Release gate. CD is triggered by tags, and CI does NOT run on tag pushes — so without this a
+  # release could publish a build that fails the tests or carries a known-vulnerable dependency
+  # (exactly how v0.1.0 shipped while CI was red). Re-runs the CI correctness/security gates here;
+  # the publish job `needs` it, so a red gate stops the workflow before anything is pushed.
+  verify:
+    name: Verify (tests + dependency audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Calendar.slnx
+
+      - name: Build
+        run: dotnet build Calendar.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Calendar.slnx -c Release --no-build
+
+      # Hard gate: refuse to publish on any known-vulnerable NuGet package.
+      - name: Audit NuGet packages for known vulnerabilities
+        run: |
+          report=$(dotnet list Calendar.slnx package --vulnerable --include-transitive)
+          echo "$report"
+          if echo "$report" | grep -q "following vulnerable packages"; then
+            echo "::error::Vulnerable NuGet packages detected — refusing to publish"
+            exit 1
+          fi
+
   image:
     name: Build, scan & publish image
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: read
